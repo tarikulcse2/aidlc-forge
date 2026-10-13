@@ -1,0 +1,19 @@
+id: CR-NNN
+handle: CR-NNN-slug
+ticket:
+title: Short title
+track: standard
+status: requirements
+gate_requirements: pending
+gate_requirements_by:
+gate_requirements_date:
+gate_planning: pending
+gate_planning_by:
+gate_planning_date:
+gate_deploy: pending
+gate_deploy_by:
+gate_deploy_date:
+units_total: 0
+units_done: 0
+branch:
+updated: YYYY-MM-DD

@@ -1,0 +1,48 @@
+# Shared CI for .NET projects that use the aidlc-forge plugin. Called from each project's .github/workflows/aidlc-ci.yml.
+name: aidlc-dotnet
+
+on:
+  workflow_call:
+    inputs:
+      solution:
+        type: string
+        required: true
+      dotnet-version:
+        type: string
+        default: 10.0.x
+      docker:
+        type: boolean
+        default: false
+      health-path:
+        type: string
+        default: /health
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ inputs.dotnet-version }}
+      - run: dotnet restore ${{ inputs.solution }}
+      - run: dotnet build ${{ inputs.solution }} -c Release --no-restore
+      - run: dotnet test ${{ inputs.solution }} -c Release --no-build --collect:"XPlat Code Coverage" --results-directory coverage --logger trx
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: coverage/**
+
+  image:
+    if: inputs.docker
+    needs: build-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t app:${{ github.sha }} .
+      - name: Smoke test the health endpoint
+        run: |
+          docker run -d --name app -p 8080:8080 app:${{ github.sha }}
+          for i in $(seq 1 30); do curl -fs "http://localhost:8080${{ inputs.health-path }}" && exit 0; sleep 1; done
+          docker logs app; exit 1

@@ -1,0 +1,31 @@
+# AI-DLC project settings (aidlc-forge plugin). Flat "key: value" lines ONLY: the hooks and scripts read them with grep.
+# Don't put comments at the end of value lines. {FILE} and {ID} are placeholders filled in at run time.
+project: MyProject
+stack: dotnet-webapi
+base_branch: main
+build: dotnet build MyProject.sln --nologo
+test_fast: dotnet test MyProject.sln --nologo --filter "FullyQualifiedName!~Integration&FullyQualifiedName!~Endpoints"
+test_all: dotnet test MyProject.sln --nologo
+test_story: dotnet test MyProject.sln --nologo --filter "FullyQualifiedName~{ID}"
+format_file: dotnet format whitespace --folder --include {FILE}
+run: dotnet run --project src/MyProject.Api
+code_dirs: src tests
+test_dirs: tests
+code_exts: cs csproj
+contract: docs/baseline/api/openapi.yaml
+story_prefix: US
+track_default: standard
+test_gate: on
+parallel_units: off
+auto_max_attempts: 3
+auto_deploy: on
+review_small_lines: 150
+tiny_change_lines: 30
+# cost_profile: economy = Sonnet for every agent (cheapest) | balanced = Opus only for big or judgement work | quality = Opus for analyst, planner and reviewer
+cost_profile: balanced
+ac_default_level: functional
+ac_language: English
+ticket_system: none
+ticket_base_url:
+bdd_framework: none
+feature_dir:

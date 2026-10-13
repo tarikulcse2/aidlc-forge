@@ -1,0 +1,13 @@
+{
+  "name": "aidlc-forge",
+  "description": "aidlc-forge: the AI-Driven Development Life Cycle (AI-DLC) plugin for Claude Code",
+  "owner": { "name": "Platform Team" },
+  "plugins": [
+    {
+      "name": "aidlc-forge",
+      "source": "./plugins/aidlc-forge",
+      "description": "AI-DLC process: requirements, planning, test-first implementation, testing, deploy. Step-by-step or automatic, across many projects.",
+      "version": "3.3.2"
+    }
+  ]
+}

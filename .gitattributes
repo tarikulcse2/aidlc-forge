@@ -1,0 +1,9 @@
+# Keep Unix line endings for scripts and config read by bash, so hooks work on Windows, macOS and Linux.
+* text=auto
+*.sh   text eol=lf
+*.md   text eol=lf
+*.json text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
+# PowerShell scripts run on Windows.
+*.ps1  text eol=crlf

@@ -1,0 +1,22 @@
+# Managed by the aidlc-forge plugin (templates/ci/aidlc-ci.yml). Calls the shared workflow in the aidlc-forge repo.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 1 * * *"   # nightly regression
+  workflow_dispatch:
+
+jobs:
+  ci:
+    uses: YOUR-ORG/aidlc-forge/.github/workflows/aidlc-dotnet.yml@aidlc-forge--v3.3.2
+    with:
+      solution: MyProject.sln
+      dotnet-version: 10.0.x
+      docker: true
+      health-path: /health
+
+  # Deployment stays per project: add deploy jobs here that run only on `push` to main, and protect the
+  # production environment with required reviewers (deploy gate).
