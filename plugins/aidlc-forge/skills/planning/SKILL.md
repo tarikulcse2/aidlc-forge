@@ -47,6 +47,8 @@ D4. **One combined approval.** Show (≤ 15 lines):
 1. **Check:** gate_requirements is `approved`, or `auto` in an auto run. Otherwise stop. If the track is lite, say
    that the design was covered at the requirements gate, and stop.
 2. **Delegate** to the `planner` agent (model per core.md: Model routing) with the CR folder and mode (prefix `AUTO MODE.` in auto runs).
+   Under `balanced`, decide from `request.md`: **≤ 2 stories** and no decision row about a package, persistence, auth or
+   contract versioning → **sonnet** (fast). Otherwise opus. Removals and changes that follow existing patterns are small.
    - Step mode: if it returns an options table, show it, wait for a choice, and send the choice back.
 3. **Verify:**
    - `units.md` has a context pack for every unit, and every AC from `request.md` is in a unit

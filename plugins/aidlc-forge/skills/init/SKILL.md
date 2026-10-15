@@ -38,13 +38,24 @@ change and ask before writing. Never commit.
    - `permissions.ask`: `Bash(git commit:*)`, `Bash(git push:*)`
    - `extraKnownMarketplaces` and `enabledPlugins` for `aidlc-forge@aidlc-forge`, so teammates get the plugin.
      Ask for the marketplace git URL if it can't be found from `claude plugin marketplace list`.
-4. `scripts/aidlc/run-regression.ps1` and `scripts/aidlc/aidlc-auto.ps1`, copied from
+4. `scripts/aidlc/run-regression.ps1`, `scripts/aidlc/aidlc-auto.ps1`, `scripts/aidlc/watch.ps1` (live progress),
+   `scripts/aidlc/statusline.sh` and `scripts/aidlc/agent-rows.ps1` (live progress inside Claude Code), copied from
    `${CLAUDE_PLUGIN_ROOT}/templates/scripts/`. Keep their "managed by the aidlc-forge plugin" header.
+4a. **Live progress in the terminal** (ask once: "Show aidlc progress in Claude Code's status line and agent rows?"):
+   merge into **`.claude/settings.local.json`** (personal, never committed), using the project's absolute path with
+   forward slashes:
+   ```json
+   "statusLine": { "type": "command", "command": "bash \"<project>/scripts/aidlc/statusline.sh\"", "refreshInterval": 3 },
+   "subagentStatusLine": { "type": "command",
+     "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"<project>/scripts/aidlc/agent-rows.ps1\"" }
+   ```
+   If the user already has a `statusLine` (check `~/.claude/settings.json` and this project's settings), say that this
+   replaces it in this project, and ask before writing. Make sure `.claude/settings.local.json` is in `.gitignore`.
 5. `.github/workflows/aidlc-ci.yml` from `${CLAUDE_PLUGIN_ROOT}/templates/ci/aidlc-ci.yml` (ask first, and
    only if the project uses GitHub). Fill in `solution` with the real solution file. Set `dotnet-version` from the
    projects' `TargetFramework` (`net9.0` → `9.0.x`, `net10.0` → `10.0.x`; with several, use the highest). Set `docker` to
    `true` only if there's a `Dockerfile`. If the target framework is out of support, say so in one line.
-6. `.gitignore`: add `.aidlc/runs/`, `.aidlc/.last-green`, `.aidlc/last-test-all.*` and `TestResults/` if they're missing.
+6. `.gitignore`: add `.aidlc/runs/`, `.aidlc/.last-green`, `.aidlc/last-test-all.*`, `.aidlc/progress.log` and `TestResults/` if they're missing.
 7. Folders `docs/baseline/`, `docs/changes/` and `docs/ops/` (with a `.gitkeep` where a folder would be empty).
 8. **No git:** offer `git init` (never commit). Without git, the protected-test check, per-unit commits and
    parallel units are disabled.

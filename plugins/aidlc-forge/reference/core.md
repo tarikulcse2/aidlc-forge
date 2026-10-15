@@ -1,4 +1,4 @@
-# AI-DLC core rules (aidlc-forge plugin 3.3.2)
+# AI-DLC core rules (aidlc-forge plugin 3.6.1)
 
 Every aidlc skill and agent reads this file once per session. Detail files are read **only when a step needs them**:
 `tiny.md` (tiny changes run inline), `docs.md` (lean documents),
@@ -61,7 +61,7 @@ The agent files default to `sonnet`.
 | Agent | `economy` | `balanced` | `quality` |
 |---|---|---|---|
 | requirements-analyst | sonnet | opus for track `full`, otherwise sonnet | opus |
-| planner | sonnet | opus for standard and full, sonnet for a lite CR's single unit | opus |
+| planner | sonnet | opus for full CRs and for standard CRs with a real design decision; **sonnet** for small standard CRs (≤ 2 stories, no new package, persistence, auth or contract-versioning decision) and a lite CR's single unit | opus |
 | code-reviewer | sonnet | sonnet if the change is under `review_small_lines` (default 150) lines, otherwise opus | opus |
 | tester, coder, devops, discovery-analyst | sonnet | sonnet | sonnet |
 

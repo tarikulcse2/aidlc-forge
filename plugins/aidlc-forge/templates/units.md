@@ -1,4 +1,5 @@
 # CR-NNN units
+Estimate: ~<n> lines, <n> files · Review: per unit | combined
 
 ### U-NN <title> · S · after: – · group: A · ⏳
 - ACs: US-NNN AC1–AC3

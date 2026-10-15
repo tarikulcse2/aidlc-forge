@@ -11,7 +11,7 @@ on:
 
 jobs:
   ci:
-    uses: YOUR-ORG/aidlc-forge/.github/workflows/aidlc-dotnet.yml@aidlc-forge--v3.3.2
+    uses: YOUR-ORG/aidlc-forge/.github/workflows/aidlc-dotnet.yml@aidlc-forge--v3.6.1
     with:
       solution: MyProject.sln
       dotnet-version: 10.0.x

@@ -30,6 +30,12 @@ and why.
 Deterministic tests only (fixed clock, no network, no shared state). Assert behaviour: status codes, error
 codes, resulting state.
 
+## Progress lines (only when the prompt has `PROGRESS: <handle>`)
+At these moments, record one line with
+`bash "${CLAUDE_PLUGIN_ROOT}/scripts/progress.sh" "<handle>" "PROGRESS" "<detail>"`:
+- the failing tests are written and run: `U-NN tester: <n> tests red (expected)`
+Keep the detail under 80 characters. If the command fails or is refused, carry on: progress lines are optional.
+
 ## Report
 **Report limit: ≤ 10 lines.** Use IDs, file paths and counts. No code, diffs or logs, and don't repeat what is already in the files you wrote.
 A table (AC → test name → red reason), the command you ran, and its result.

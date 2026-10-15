@@ -19,11 +19,17 @@ requirements ──► planning ──► implementation ──► testing ─�
  gate            gate         review → commit    suite run   gate      baseline
 ```
 
-Version 3.3.2. See [CHANGELOG.md](CHANGELOG.md).
+Version 3.6.1. See [CHANGELOG.md](CHANGELOG.md).
 
-**What's new (1.6 → 3.3.2)**
+**What's new (1.6 → 3.6.1)**
 | Version | Change |
 |---|---|
+| 3.6.1 | Agent rows show each aidlc agent's token count (`… · 01:37 · 12.4k tokens`), and a long row shortens its label so the time, tokens and status stay visible. |
+| 3.6.0 | Faster small CRs: one unit when the change is ≤ 150 lines / 5 files, one combined review for small split CRs, small standard CRs planned on Sonnet without an options table, and traceability once per CR. |
+| 3.5.0 | Live progress inside Claude Code: a status line (`aidlc ▶ CR-006-… · implementation · U-12 Sign-out (2/3) · coder: green · 00:16:40`) that keeps updating while agents run, and agent rows showing each agent's latest progress and running time. Set up by `init` in your personal settings. |
+| 3.4.2 | Completion time: every finished step, unit and run gets ` in HH:MM:SS`, `watch.ps1` shows the total plus the slowest step and unit, the report gets a timing line, the runner prints `AUTO RUN: GREEN in …`, and `metrics.csv` records `duration=`. |
+| 3.4.1 | Finer progress: agents log `PROGRESS` lines (tests red or green, attempts, review verdict), and the session prints one line per event in the chat (`▶ U-02 …`, `✅ U-02 … (2/5)`, `🧪 GREEN 73/73`, `🏁 RUN COMPLETE`). |
+| 3.4.0 | Real-time progress: `.aidlc/progress.log` (one line per step and unit), a live view `watch.ps1`, live output and a Windows notification from the unattended runner. |
 | 3.3.2 | Security: commands pre-approve only the plugin's own scripts (was any `bash …` command); the unattended runner blocks `bash -c` and `sh -c`. Tester at `medium` effort. CI defaults to .NET 10, and `init` fills in the project's version. Corrected descriptions. |
 | 3.3.1 | Agents are labelled in the agent list with what they work on: `<handle> U-NN <unit title>` (coder), `… review: …`, `<handle> planning: <title>`, and so on. |
 | 3.3.0 | CR naming: the handle `CR-NNN-<slug>` (3 digits plus title) is shown everywhere, an optional `ticket:`, arguments by number or slug, and numeric sorting. Older `CR-NN` CRs keep working. |
@@ -145,6 +151,32 @@ as history.
   The new runner no longer allows `bash` at all, and blocks `bash -c` and `sh -c`. Commands themselves need no
   change: they now pre-approve only the plugin's own scripts.
 
+### Upgrading to 3.4.x (real-time progress)
+- Re-run `/aidlc-forge:init` in each onboarded project. It adds `scripts/aidlc/watch.ps1`, refreshes `aidlc-auto.ps1`
+  (live output and the notification) and adds `.aidlc/progress.log` to `.gitignore`.
+- Then run `.\scripts\aidlc\watch.ps1` in a second terminal during any `auto` or `custom-workflow` run.
+- **3.4.1:** re-run `/aidlc-forge:init` again (or copy the two files) so `aidlc-auto.ps1` shows agents' `[PROGRESS]`
+  lines and `watch.ps1` shows 12 events. The finer progress and the chat lines apply to runs started after the update.
+- **3.4.2:** re-run `/aidlc-forge:init` (or copy `aidlc-auto.ps1` and `watch.ps1`) to get the completion times in the
+  runner and the live view. Durations appear for runs started after the update. For an earlier run, calculate the
+  total from its log:
+  `$l = Get-Content .aidlc\progress.log; $s = $l | ? { $_ -match '\| RUN START \|' } | select -Last 1; $e = $l | ? { $_ -match '\| RUN COMPLETE \|' } | select -Last 1; "TOTAL: {0:hh\:mm\:ss}" -f ([datetime]::Parse(($e -split '\|')[0]) - [datetime]::Parse(($s -split '\|')[0]))`
+
+
+### Upgrading to 3.5.x (live progress inside Claude Code)
+- Re-run `/aidlc-forge:init` in each onboarded project. It copies `statusline.sh` and `agent-rows.ps1`, and (after
+  asking) adds `statusLine` (`refreshInterval: 3`) and `subagentStatusLine` to your personal
+  `.claude/settings.local.json`. A project status line replaces your own status line in that project.
+- Start a new session (or `/reload-plugins`). The status line only appears once the folder is trusted.
+
+### Upgrading to 3.6.x (faster small CRs)
+- Nothing to do: new CRs are planned with fewer units and, when small, one combined review. Older `units.md` files
+  (without the `Review:` header) keep a review per unit.
+- Optional: tune `small_change_lines` (default 150) in `.aidlc/config.yaml`. Set `auto_deploy: off` in projects
+  where deploy readiness doesn't apply (no container or pipeline yet).
+- **3.6.1:** re-run `/aidlc-forge:init` (or copy `templates/scripts/agent-rows.ps1` to `scripts/aidlc/`) so the agent
+  rows show token counts. It takes effect on the next refresh; no restart needed.
+
 ---
 
 ## 3. Quick start
@@ -176,7 +208,7 @@ git init
 /aidlc-forge:acceptance-criteria PROJ-123 technical                             # ACs from a ticket, grounded in the code
 /aidlc-forge:acceptance-criteria Managers can delegate approvals to a deputy    # draft ACs → docs/specs/delegation.md
 /aidlc-forge:planning docs/specs/delegation.md                                  # import those ACs and plan
-/aidlc-forge:auto continue
+/aidlc-forge:auto continue                                                  # meanwhile, in a 2nd terminal: .\scripts\aidlc\watch.ps1
 /aidlc-forge:status
 ```
 
@@ -284,6 +316,9 @@ Business, Functional, Technical or QA level ([§6.14](#614-acceptance-criteria-d
 The **state** of every CR lives in its `state.yaml`, so you can stop at any point, close Claude, `/clear`, or switch
 machines, and carry on later. Nothing is kept only in the chat.
 
+**Follow a running workflow live** with `.\scripts\aidlc\watch.ps1` in a second terminal: the active CR, its units,
+the latest events and elapsed time, ending with `RUN COMPLETE` ([§6.3](#63-auto-mode-aidlc-forgeauto-and-aidlc-forgecustom-workflow)).
+
 ### 6.2 Step mode: `/aidlc-forge:step`
 **You type:** `/aidlc-forge:step` (or `/aidlc-forge:step CR-004` to focus on one CR).
 
@@ -385,6 +420,58 @@ Both run lifecycle steps in **AUTO MODE**, without stopping at gates. The differ
 **Unattended:** `scripts/aidlc/aidlc-auto.ps1 -Intent "continue CR-004" -MaxBudgetUsd 10` runs `/aidlc-forge:auto`
 headless. Add `-Phases implementation,testing` to run `/aidlc-forge:custom-workflow --phases …` instead (no picker).
 It enforces limits through Claude Code permissions and re-runs the regression itself ([§14](#14-hooks-and-scripts)).
+It shows progress **live** (agents, progress events, edits, commands) and pops up a **Windows notification** when it
+finishes (`-NoNotify` turns that off).
+
+**Tracking progress in real time:**
+| Where | What you see |
+|---|---|
+| **Inside Claude Code** (status line and agent rows, set up by `init`) | A live line at the bottom: `aidlc ▶ CR-006-admin-login · implementation · U-12 Sign-out (2/3) · coder: green after 1 attempt · 00:16:40`. It refreshes every 3 s, **also while the session waits for an agent**, and ends with `aidlc 🏁 CR-006-admin-login · GREEN in 00:16:35`. Each aidlc agent's row shows its own latest progress and running time: `coder · CR-006-admin-login U-12 Sign-out · green after 1 attempt(s) · 02:14 · 12.4k tokens`, and the reviewer's row shows its verdict. A long row shortens its label, so the time and tokens stay visible. |
+| **`.\scripts\aidlc\watch.ps1`** in a second terminal (no AI cost) | A view refreshed every 5 s: the active CR (handle and ticket), status, gates, units with ⏳/🔨/✅/⛔, elapsed time, and the last 12 events. It ends with **`RUN COMPLETE: GREEN / RED / HARD STOP`** and a beep. `-Notify` adds a Windows notification, `-Once` prints a single snapshot, `-Seconds 10` changes the interval. |
+| **`.aidlc/progress.log`** | One line per event, written by `auto` and `custom-workflow`: `RUN START`, `STEP START`/`STEP DONE`, `UNIT START`/`UNIT DONE`/`UNIT STOP`, `TESTS`, `HARD STOP`, `RUN COMPLETE`. **Agents add `PROGRESS` lines** while a unit runs (`U-02 coder: 4 tests red`, `… green after 1 attempt(s)`, `U-02 review: APPROVE`), so a long unit no longer looks frozen. The unattended runner adds `RUNNER VERDICT` after its own regression run. |
+| **The session running the work** | **One chat line per event**, e.g. `▶ U-02 Outbox table (2/5)`, `✅ U-02 Outbox table (2/5)`, `🧪 GREEN 73/73`, `🏁 RUN COMPLETE: GREEN`, so the chat reads as a progress log. While an agent runs, the agent list under the prompt shows its label and current action (e.g. `CR-006-leave-emails U-22 Sender`); press ↓ to open it. (The chat can't print while it waits for an agent.) |
+| **The unattended runner's console** | Live lines: `[agent] …`, `[UNIT DONE] …`, `[PROGRESS] …` (from agents), `[edit] …`, `[run] …`, then the verdict. The full event stream is kept in `.aidlc/runs/<timestamp>/claude-stream.jsonl`. |
+| **Any time, from another session** | `/aidlc-forge:status`, or for free: `bash "<plugin>/scripts/portfolio.sh" .` |
+
+```
+AI-DLC live progress - LeaveManagement - 14:52:21
+------------------------------------------------------------------------
+CR      : CR-006-leave-emails (PROJ-123) - Leave emails
+Status  : implementation    units 1/3
+Gates   : requirements=auto  planning=auto  deploy=pending
+Units   :
+  U-21 Outbox table · S · after: – · group: A · ✅
+  U-22 Sender · S · after: U-21 · group: A · 🔨
+  U-23 Wiring · S · after: U-22 · group: A · ⏳
+Elapsed : 00:12:00 since RUN START
+------------------------------------------------------------------------
+Latest events:
+  2026-10-13T08:40:21Z | - | RUN START | requirements,planning,implementation,testing
+  2026-10-13T08:43:21Z | CR-006-leave-emails | STEP DONE | planning: 3 units
+  2026-10-13T08:48:21Z | CR-006-leave-emails | UNIT DONE | U-21 Outbox table 1/3
+  2026-10-13T08:49:21Z | CR-006-leave-emails | UNIT START | U-22 Sender
+```
+
+**How long did it take?** Durations are calculated for you (by `progress.sh`, from the start and end events, with no
+AI estimate):
+
+| Where | Shows |
+|---|---|
+| `.aidlc/progress.log` | ` in HH:MM:SS` on every `STEP DONE`, `UNIT DONE`/`UNIT STOP` and `RUN COMPLETE` line |
+| The chat | `✔ planning: 3 units in 00:03:02` · `✅ U-02 Outbox table (2/5) in 00:02:25` · `🏁 RUN COMPLETE: GREEN in 00:18:52` |
+| `watch.ps1` at the end | `Total : 00:18:52`, plus the slowest step and the slowest unit |
+| `docs/ops/auto-run-report.md` | A timing line: the total, each step's duration, and the slowest unit |
+| Unattended runner | `Claude finished in …`, then `Total time : …` and `AUTO RUN: GREEN in …` (Claude run plus its own regression), also in the notification title |
+| `.aidlc/metrics.csv` | `duration=HH:MM:SS` in the notes of every unit row and run row, to compare runs over time |
+
+```
+------------------------------------------------------------------------
+Total   : 00:18:52  (RUN START -> RUN COMPLETE)
+Slowest step : planning: 3 units (00:03:02)
+Slowest unit : U-10 Admin sign-in 1/3 (00:04:58)
+
+RUN COMPLETE: GREEN in 00:18:52
+```
 
 ### 6.4 Requirements: `/aidlc-forge:requirements <intent>`
 1. **Opens a CR** with its handle `CR-NNN-<slug>` (e.g. `CR-006-leave-emails`): the folder `docs/changes/<handle>/`,
@@ -415,7 +502,8 @@ There are two ways in.
    - **ADRs** (≤ 12 lines) only for hard-to-reverse decisions: packages, persistence, auth, contract versioning, public patterns
    - **the contract change first**, with its version bumped
    - **`units.md`**: one 4-line context pack per unit, with exactly which files to read, which ACs, what to change,
-     and when it's done. Units are S or M; independent units share a parallel group.
+     and when it's done. **As few units as possible:** a change of ≤ `small_change_lines` (150) and ≤ 5 files is one
+     unit; it splits only for independent or risky parts. Independent units share a parallel group.
 5. Checks that **every AC is in exactly one unit**, and that no empty section or debate went into a file.
 6. **Planning gate:** decisions, contract changes and units in order, then *"Approve planning gate for CR-004?"* Yes → ✅,
    and the status moves to `implementation`.
@@ -446,9 +534,13 @@ unit ──────►├─ S or M unit, or lite/bug-fix/quick CR ───
 3. **Tests first:** tests named `USnnn_ACk_<Behaviour>` are written and seen to **fail** for the right reason, then the
    code is written until **only this unit's tests** (`test_story`) pass. No full suite here.
 4. **One review** by the code-reviewer (Sonnet for small changes, Opus for large ones under `balanced`). Critical
-   findings are fixed, then a **follow-up review** checks only those findings. At most two rounds.
-5. **Record:** the unit becomes ✅, `units_done` + 1, traceability is regenerated, and a metrics row is added. After the
-   last unit, the status moves to `testing`.
+   findings are fixed, then a **follow-up review** checks only those findings. At most two rounds. When `units.md` says
+   `Review: combined` (a small CR the planner still split), only the **last** unit triggers a review, covering the
+   whole CR in one pass.
+5. **Record:** the unit becomes ✅, `units_done` + 1, and a metrics row is added with
+   `duration=HH:MM:SS`. The unit's time comes from the `UNIT START` and `UNIT DONE` events this command logs itself,
+   also when you run it by hand. After the last unit, traceability is regenerated (once per CR) and the status moves
+   to `testing`.
 6. **Commit** `feat(CR-NNN U-NN): …`: proposed in step mode, made locally in auto mode. Never pushed.
 
 **While it runs,** the agent list shows `CR-003-todo-description U-05 Description field` (the coder), then `… U-05
@@ -735,10 +827,10 @@ Agents are started by the commands, and named `aidlc-forge:<name>`. The model de
 | Agent | Role | Used by | Effort | Turn limit | Tools |
 |---|---|---|---|---|---|
 | `requirements-analyst` | Stories and ACs; IMPORT MODE for direct planning (also imports `acceptance-criteria` drafts: real IDs, ACs word for word); AUTO MODE answers its own questions | requirements, planning, auto, custom-workflow | medium | 20 | read, write |
-| `planner` | Options (in chat), design delta, ADRs, contract first, context-packed units | planning, requirements (lite) | medium (high for full-track CRs) | 30 | read, write, web search |
+| `planner` | Options in chat (only for real decisions), design delta, ADRs, contract first, and **as few context-packed units as possible** (one unit for small CRs; marks `Review: combined` when a small CR is split) | planning, requirements (lite) | medium (high for full-track CRs) | 30 | read, write, web search |
 | `tester` | Failing tests from the ACs, for L units | implementation | medium | 20 | read, write, shell |
 | `coder` | Implements one unit; TDD mode for S and M units; runs only the unit's tests | implementation, bug-fix, quick, auto, custom-workflow | medium | 40 | read, write, shell |
-| `code-reviewer` | One independent review per unit, and follow-ups on fixed findings only. Read-only; never runs tests | implementation, bug-fix, quick | medium | 15 | read, shell (`git diff`/search) |
+| `code-reviewer` | One independent review per unit (or one whole-CR review for small split CRs), and follow-ups on fixed findings only. Read-only; never runs tests | implementation, bug-fix, quick | medium | 20 | read, shell (`git diff`/search) |
 | `devops` | Container, CI, runbook, release notes, readiness. Never deploys | deploy | low | 20 | read, write, shell |
 | `discovery-analyst` | As-is baseline from existing code | discovery | medium | 60 | read, write, shell |
 
@@ -751,6 +843,9 @@ Agents are started by the commands, and named `aidlc-forge:<name>`. The model de
 - **Labelled in the agent list:** while an agent runs, Claude Code's agent list shows what it's working on:
   `CR-003-todo-description U-05 Description field` (coder), `… U-05 review: …` (code-reviewer),
   `CR-006-leave-emails planning: Leave emails` (planner), `Discovery: Billing` (discovery-analyst), and so on.
+- **Report progress during runs:** in `auto` and `custom-workflow` runs (prompt tag `PROGRESS: <handle> U-NN`), the
+  tester, coder, code-reviewer, devops and discovery-analyst write `PROGRESS` lines to `.aidlc/progress.log`: tests
+  red or green, attempts, review verdict, readiness areas. If a progress line is refused, they carry on without it.
 - An agent that reaches its turn limit isn't restarted: it's a hard stop in auto mode, or a question in step mode.
 - The analyst, planner, tester and coder follow the requester's `BRIEF:` from auto mode.
 
@@ -797,6 +892,7 @@ Flat `key: value` lines only (the hooks read them with grep). Don't put comments
 | `auto_deploy` | `on` | `off` makes `/aidlc-forge:auto` stop after testing (no deploy step). `custom-workflow` is unaffected: you tick Deploy or not |
 | `review_small_lines` | `150` | Below it, the reviewer uses Sonnet (balanced profile) |
 | `tiny_change_lines` | `30` | Inline limit for tiny changes (`0` = always use agents) |
+| `small_change_lines` | `150` | A CR estimated at or below this (and ≤ 5 files) is planned as **one unit**; a small CR that still needs several units gets **one combined review** |
 | `ac_default_level` | `functional` | Default level for `/aidlc-forge:acceptance-criteria`: `business` · `functional` · `technical` · `qa` |
 | `ac_language` | `English` | Language the ACs are written in (code identifiers stay as they are) |
 | `ticket_system` / `ticket_base_url` | `none` / – | `jira` · `azure-devops` · `github` · `linear`, and the base URL for bare keys like `PROJ-123` |
@@ -833,7 +929,7 @@ only, and auto runs always use agents.
 | Profile | requirements-analyst | planner | code-reviewer | tester, coder, devops, discovery-analyst |
 |---|---|---|---|---|
 | `economy` | Sonnet | Sonnet | Sonnet | Sonnet |
-| `balanced` (default) | Opus for full-track CRs only | Opus for standard and full CRs | Opus for changes of 150+ lines | Sonnet |
+| `balanced` (default) | Opus for full-track CRs only | Opus for full CRs and standard CRs with a real design decision; Sonnet for small standard CRs (≤ 2 stories, no package, persistence, auth or contract-versioning decision) | Opus for changes of 150+ lines | Sonnet |
 | `quality` | Opus | Opus | Opus | Sonnet |
 
 `status` and `portfolio` run on Haiku.
@@ -845,6 +941,7 @@ only, and auto runs always use agents.
 | Tiny changes inline (interactive only) | 0 agent hand-offs for ≤ 30-line changes; auto mode uses agents so its main context stays small |
 | Effort and turn limits per agent | Routine agents don't over-think; runaway loops are capped |
 | One coder for S and M units (tester only for L) | One agent start fewer per M unit, and no second read of the same files |
+| **Fewer units, fewer reviews, faster planning** | Small CRs (≤ `small_change_lines`) become one unit (each extra unit costs ~1.5–2 min of fixed overhead), split small CRs get one combined review, small standard CRs are planned on Sonnet without an options table, and traceability is generated once per CR. Measured on TestApp-aidlc: code is only 10–20% of a unit's time. |
 | Agents read in one parallel batch, skip CLAUDE.md, report in ≤ 10 lines | Fewer turns (each turn re-sends the whole context), ~1k fewer tokens per agent, a smaller main context in auto runs |
 | Planner at `medium` effort (`high` only for full track) | Less thinking, which is billed as output |
 | Full suite once, plus reuse | No repeated test runs |
@@ -871,8 +968,9 @@ only, and auto runs always use agents.
 ```
 .aidlc/
   config.yaml                 project settings (§10)
-  metrics.csv                 one row per unit and per unattended run: date,cr,unit,track,size,mode,result,attempts,tests_added,notes
+  metrics.csv                 one row per unit and per unattended run: date,cr,unit,track,size,mode,result,attempts,tests_added,notes (notes include duration=HH:MM:SS)
   last-test-all.txt / .log    the last full run: result, summary, full log (gitignored)
+  progress.log                live run events, one line each (read by watch.ps1; gitignored)
   .last-green                 Stop hook marker (gitignored)
   runs/<timestamp>/           unattended run logs (gitignored)
 docs/
@@ -882,7 +980,8 @@ docs/
 <feature_dir>/*.feature        QA-level Gherkin from /aidlc-forge:acceptance-criteria (only if you saved it; tagged @US-NNN @ACn)
   ops/                        runbook.md, test-report.md, release-notes.md, auto-run-report.md
   traceability.md             generated; never edit by hand
-scripts/aidlc/                run-regression.ps1, aidlc-auto.ps1 (managed copies)
+scripts/aidlc/                run-regression.ps1, aidlc-auto.ps1, watch.ps1, statusline.sh, agent-rows.ps1 (managed copies)
+.claude/settings.local.json   personal: statusLine and subagentStatusLine for live progress (written by init; not committed)
 CLAUDE.md                     contains the managed <!-- aidlc:start --> … <!-- aidlc:end --> block
 ```
 
@@ -915,13 +1014,17 @@ CLAUDE.md                     contains the managed <!-- aidlc:start --> … <!--
 | `test-all.sh` | `bash test-all.sh [--fresh] [project_dir]` | Runs `test_all` once, with compact output. Reuses a still-valid green run; `--fresh` forces a run. Writes `.aidlc/last-test-all.*`. Exit 0 = green. |
 | `trace.sh` | `bash trace.sh [project_dir] > docs/traceability.md` | Stories (baseline plus open CRs, labelled by handle) → tests, with AC coverage, missing legacy tests and orphan tests |
 | `portfolio.sh` | `bash portfolio.sh [folder …]` | The status table across projects (CRs by handle plus ticket, in numeric order), plus Needs attention. No AI involved. |
+| `progress.sh` | `bash progress.sh "<handle>" "<EVENT>" "<detail>"` | Appends one timestamped event to `.aidlc/progress.log` and prints the logged line. For `STEP DONE`, `UNIT DONE`/`UNIT STOP` and `RUN COMPLETE` it appends ` in HH:MM:SS`, measured from the matching start event of the current run. Used by `auto`, `custom-workflow`, `implementation` and the agents; never fails a run. |
 | `lib.sh` | (sourced) | Config reading, path conversion, "changed since", failure summaries |
 
 ### Project runner scripts (`scripts/aidlc/`, copied by `init`)
 | Script | Parameters | What it does |
 |---|---|---|
 | `run-regression.ps1` | `-Story US004`, `-Fast` | Runs **one** command (`test_all` by default). Exit 0 = GREEN, 1 = RED. For Task Scheduler, pre-push hooks or CI. |
-| `aidlc-auto.ps1` | `-Intent "<text>" \| "continue [CR-NNN]"`, `-Phases a,b` (default `all`), `-MaxBudgetUsd 20` | Runs `/aidlc-forge:auto` headless (or `/aidlc-forge:custom-workflow --phases …` when `-Phases` is given) with **enforced limits**: edits to `.claude/`, `CLAUDE.md` and the config are blocked; push, merge, rebase, reset, `rm -rf`, `bash -c` and `sh -c` are blocked (no blanket `bash` approval); only the local git commands it needs are allowed. Then it re-runs the regression itself, writes `.aidlc/runs/<timestamp>/` (Claude's output and summary, the regression log) and a metrics row with the cost. Exit 0 = GREEN. |
+| `watch.ps1` | `-Seconds 5`, `-Once`, `-Notify` | Live progress view with no AI: active CR, gates, units, elapsed time, latest events. Ends with `RUN COMPLETE: …`. See [§6.3](#63-auto-mode-aidlc-forgeauto-and-aidlc-forgecustom-workflow). |
+| `statusline.sh` | (Claude Code status line; reads its JSON on stdin) | One live line about the current run: CR, status, the current unit with its title and count, its latest progress, elapsed time, and a quiet warning after 10 min. Shows the result for 30 min after the run ends, and nothing outside aidlc projects. Wired up by `init` with `refreshInterval: 3`. |
+| `agent-rows.ps1` | (Claude Code `subagentStatusLine`) | Rewrites each running aidlc-forge agent's row: role, label, latest `PROGRESS` line it wrote itself for its unit (a coder row never shows the reviewer's verdict), running time and token count. A long row shortens its label, never the time or tokens. Other agents keep their default rows. |
+| `aidlc-auto.ps1` | `-Intent "<text>" \| "continue [CR-NNN]"`, `-Phases a,b` (default `all`), `-MaxBudgetUsd 20`, `-NoNotify` | Runs `/aidlc-forge:auto` headless (or `/aidlc-forge:custom-workflow --phases …` when `-Phases` is given) with **enforced limits**: edits to `.claude/`, `CLAUDE.md` and the config are blocked; push, merge, rebase, reset, `rm -rf`, `bash -c` and `sh -c` are blocked (no blanket `bash` approval); only the local git commands it needs are allowed. Then it re-runs the regression itself, writes `.aidlc/runs/<timestamp>/` (Claude's output and summary, the regression log) and a metrics row with the cost. Shows progress live, prints `Claude finished in …`, `Total time : …` and `AUTO RUN: GREEN in …`, and sends a Windows notification with the time at the end. Exit 0 = GREEN. |
 
 ---
 
@@ -934,7 +1037,7 @@ CLAUDE.md                     contains the managed <!-- aidlc:start --> … <!--
   UTC, and manually. `init` fills in the real solution, `dotnet-version` from the projects' `TargetFramework`
   (e.g. `net9.0` → `9.0.x`), and `docker: true` only if there's a Dockerfile.
 - **Private marketplace repo:** allow other repos to use the shared workflow under **Settings → Actions → General →
-  Access**. Pin it to a release tag: `uses: YOUR-ORG/aidlc-forge/.github/workflows/aidlc-dotnet.yml@aidlc-forge--v3.3.2`.
+  Access**. Pin it to a release tag: `uses: YOUR-ORG/aidlc-forge/.github/workflows/aidlc-dotnet.yml@aidlc-forge--v3.6.1`.
 - **Deployment jobs** stay in each project. Protect the `production` environment with required reviewers (the deploy gate).
 
 ---
@@ -1001,7 +1104,13 @@ To add a stack, create `profiles/<stack>.md` with the same sections.
 | Both `/aidlc:…` and `/aidlc-forge:…` commands appear | The session started before the 3.0.0 rename. Run `/reload-plugins` or start a new session. If they persist, run `claude plugin list` and uninstall any old `aidlc@…` entry (see "Upgrading" in §2). |
 | `/aidlc-forge:auto` no longer shows the step picker | Since 3.1.0, `auto` runs every remaining step with no questions. Use `/aidlc-forge:custom-workflow` to choose the steps, or `--phases a,b` with it to skip the picker. |
 | I don't want `auto` to run the deploy step | Set `auto_deploy: off` in `.aidlc/config.yaml`. `auto` then stops after testing. Or use `/aidlc-forge:custom-workflow` without Deploy for one run. |
-| A step feels slow | Use a shortcut (§4), Sonnet or `/fast`, and `/clear` between steps. Check that the project is onboarded (§11). |
+| A step feels slow | Use a shortcut (§4), Sonnet or `/fast`, and `/clear` between steps. Check that the project is onboarded (§11). Look at `.aidlc/progress.log`: per-unit time is mostly fixed overhead, so fewer units help most (`small_change_lines`, 3.6+). Set `auto_deploy: off` if deploy readiness doesn't apply to the project. |
+| `watch.ps1` shows no events | Events are written only by `auto` and `custom-workflow` runs, after they print their plan. Check that the project is onboarded with 3.4+ (`/aidlc-forge:init` adds the script), and that you run it from the project root: `.\scripts\aidlc\watch.ps1`. |
+| `watch.ps1` says "no new events for N min" | Normal during a long step (e.g. a big unit or the full test suite). If it stays that way, check the session running the work, or `.aidlc/runs/<timestamp>/` for unattended runs. |
+| How do I know a run finished? | `watch.ps1` ends with `RUN COMPLETE: …` and beeps (`-Notify` adds a Windows notification). The unattended runner also pops up a notification. Both write `docs/ops/auto-run-report.md`. The total time is in the chat (`🏁 RUN COMPLETE: GREEN in 00:18:52`), at the end of `watch.ps1`, in the report's timing line, and in the runner's `AUTO RUN: … in …`. |
+| The aidlc status line doesn't appear | Run `/aidlc-forge:init` (3.5+) and accept the live-progress question, then start a new session. It stays blank until the folder is trusted, outside aidlc projects, and 30 minutes after a run ends. On Windows it needs Git Bash. |
+| I lost my own status line | The project's `.claude/settings.local.json` replaces it in that project. Remove `statusLine` there to get yours back (the agent rows can stay). |
+| Claude asks to approve `bash ".../scripts/progress.sh" ... "PROGRESS" ...` during a run | That's an agent writing a progress line. Approve it (it only appends to `.aidlc/progress.log`), or decline: the agent carries on without progress lines. With `auto` permission mode it isn't asked. |
 | The Stop hook keeps running tests | It's meant to guard ad-hoc edits. It's skipped during implementation. To turn it off completely: `test_gate: off`. |
 | "GREEN (reused)" but you want a real run | `/aidlc-forge:testing all --fresh`, or `bash test-all.sh --fresh` |
 | An agent hit its turn limit | The unit is probably too big. Split it in `units.md`, or continue in step mode. |
@@ -1029,9 +1138,9 @@ reference/tracks.md             tracks, which entry to use, naming convention
 reference/state.md              state.yaml, status flow, gates, phase entry
 reference/git.md                branches, commits, protected-test check
 profiles/<stack>.md             stack profiles
-scripts/                        lib.sh, test-gate.sh, format-on-edit.sh, test-all.sh, trace.sh, portfolio.sh
+scripts/                        lib.sh, test-gate.sh, format-on-edit.sh, test-all.sh, trace.sh, portfolio.sh, progress.sh
 templates/                      config.yaml, state.yaml, request.md, design.md, units.md, adr.md, baseline.md,
-                                runbook.md, claude-md-section.md, scripts/*.ps1, ci/aidlc-ci.yml
+                                runbook.md, claude-md-section.md, scripts/*.ps1 (runner, regression, watch), ci/aidlc-ci.yml
 ```
 
 At repo level (the marketplace folder) there are also: `.claude-plugin/marketplace.json`,

@@ -33,6 +33,35 @@ hard stops, never-rules and git rules apply to the whole run. If `.aidlc/config.
 5. **`auto_deploy: off`** in `.aidlc/config.yaml`: skip step 5 (deploy). The run ends after testing, with the CR at
    status `deploy`. Any other value, or no key: run it.
 
+
+## Progress log (for `scripts/aidlc/watch.ps1` and the unattended runner)
+Record each event with `bash "${CLAUDE_PLUGIN_ROOT}/scripts/progress.sh" "<handle>" "<EVENT>" "<detail>"`: one short
+call, which never fails the run. Use the CR's handle (before step 1 creates the CR, use `-`).
+
+| When | EVENT | detail |
+|---|---|---|
+| the run starts (after the plan is printed) | `RUN START` | the steps that will run, e.g. `requirements,planning,implementation,testing` |
+| a step starts / ends | `STEP START` / `STEP DONE` | the step name; for DONE add the outcome, e.g. `planning: 3 units` |
+| a unit starts / finishes / hard-stops (the `implementation` skill logs these itself; don't log them twice) | `UNIT START` / `UNIT DONE` / `UNIT STOP` | `U-NN <unit title>`; DONE adds `n/m` units done, STOP adds the reason |
+| the full test run finishes | `TESTS` | `GREEN 73/73` or `RED 2 failed` |
+| a hard stop ends the run | `HARD STOP` | the reason, in one line |
+| the run ends (log it **before** writing the final report, which uses its duration) | `RUN COMPLETE` | `GREEN`, `RED` or `HARD STOP`, then the steps not run, if any |
+
+**Agents add finer progress:** start every tester, coder, code-reviewer, devops and discovery-analyst prompt with
+`PROGRESS: <handle> U-NN` (just the handle for devops and discovery). They then log `PROGRESS` lines themselves
+(tests red or green, attempts, review verdict), which `watch.ps1` and the runner show while a unit is running.
+
+**Show progress in the chat too:** right after recording an event, print it as one short line, so the session itself
+reads as a progress log between agent runs. `progress.sh` prints the line it logged, including the duration it
+calculated (` in HH:MM:SS`): use that duration, and never estimate times yourself.
+
+| Event | Chat line |
+|---|---|
+| `STEP START` / `STEP DONE` | `▶ planning` · `✔ planning: 3 units in 00:03:02` |
+| `UNIT START` / `UNIT DONE` / `UNIT STOP` | `▶ U-02 Outbox table (2/5)` · `✅ U-02 Outbox table (2/5) in 00:02:25` · `⛔ U-03 Wiring: tests red after 3 attempts` |
+| `TESTS` | `🧪 GREEN 73/73` or `🧪 RED 2 failed` |
+| `RUN COMPLETE` | `🏁 RUN COMPLETE: GREEN in 00:18:52`, then the final report |
+
 ## Steps (follow each skill's SKILL.md in `${CLAUDE_PLUGIN_ROOT}/skills/`)
 | # | Step | Runs while status is | Until |
 |---|---|---|---|
@@ -59,6 +88,8 @@ Write `docs/ops/auto-run-report.md` (≤ 30 lines; leave out anything empty or a
 - the brief, and anything in it that couldn't be followed (with the reason)
 - **decisions made by Claude** that a human must review, with links to the decision rows and ADRs
 - units implemented, with commits (hashes), and the test totals
+- **timing**, from `.aidlc/progress.log` since `RUN START`: the total (from the `RUN COMPLETE` line), each step's
+  duration, and the slowest unit, e.g. `Total 00:18:52 · requirements 00:01:21 · planning 00:03:02 · implementation 00:10:52 (slowest U-10, 00:04:58) · testing 00:02:38`
 - next human actions: run `/aidlc-forge:step` to ratify the 🤖 gates, review the branch diff, open a PR (with
   `auto_deploy: off`: run `/aidlc-forge:deploy` when you're ready to release), and run
   `/aidlc-forge:close` after deployment

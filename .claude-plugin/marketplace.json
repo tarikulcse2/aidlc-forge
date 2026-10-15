@@ -7,7 +7,7 @@
       "name": "aidlc-forge",
       "source": "./plugins/aidlc-forge",
       "description": "AI-DLC process: requirements, planning, test-first implementation, testing, deploy. Step-by-step or automatic, across many projects.",
-      "version": "3.3.2"
+      "version": "3.6.1"
     }
   ]
 }

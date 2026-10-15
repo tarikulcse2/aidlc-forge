@@ -21,6 +21,7 @@ auto_max_attempts: 3
 auto_deploy: on
 review_small_lines: 150
 tiny_change_lines: 30
+small_change_lines: 150
 # cost_profile: economy = Sonnet for every agent (cheapest) | balanced = Opus only for big or judgement work | quality = Opus for analyst, planner and reviewer
 cost_profile: balanced
 ac_default_level: functional

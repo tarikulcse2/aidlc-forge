@@ -33,6 +33,12 @@ docs. Later, batch independent reads and searches into one turn whenever you can
    - anything you couldn't infer
 4. Size limits: `stories.md` ≤ 400 lines. Summarise rather than list every field.
 
+## Progress lines (only when the prompt has `PROGRESS: <handle>`)
+At these moments, record one line with
+`bash "${CLAUDE_PLUGIN_ROOT}/scripts/progress.sh" "<handle>" "PROGRESS" "<detail>"`:
+- each feature area or module is documented: `discovery: <area> - <n> stories`
+Keep the detail under 80 characters. If the command fails or is refused, carry on: progress lines are optional.
+
 ## Report
 **Report limit: ≤ 10 lines.** Use IDs, file paths and counts. No code, diffs or logs, and don't repeat what is already in the files you wrote.
 The features found, the number of stories and ACs, the share of stories with tests, and the top 5 risks or unknowns.

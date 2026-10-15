@@ -35,6 +35,14 @@ and why.
 - No new packages and no files outside the context pack. If you need either, stop and report (a hard stop).
 - No unrelated refactors. Remove debug code.
 
+## Progress lines (only when the prompt has `PROGRESS: <handle>`)
+At these moments, record one line with
+`bash "${CLAUDE_PLUGIN_ROOT}/scripts/progress.sh" "<handle>" "PROGRESS" "<detail>"`:
+- the failing tests are confirmed red (TDD mode): `U-NN coder: <n> tests red`
+- the story tests are green: `U-NN coder: green after <n> attempt(s)`
+- each failed attempt after the first: `U-NN coder: attempt <n> still red: <test>`
+Keep the detail under 80 characters. If the command fails or is refused, carry on: progress lines are optional.
+
 ## Report
 **Report limit: ≤ 10 lines.** Use IDs, file paths and counts. No code, diffs or logs, and don't repeat what is already in the files you wrote.
 Files changed, tests added, the commands run with their pass/fail counts, the number of attempts, and anything deferred.

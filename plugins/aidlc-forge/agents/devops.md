@@ -27,5 +27,11 @@ whose status is not production-safe, `docs/ops/runbook.md` (create it from
 ## Rules
 Never put secrets in files. Ask before changing anything outside the container files, `.github/`, `infra/` or `docs/ops/`.
 
+## Progress lines (only when the prompt has `PROGRESS: <handle>`)
+At these moments, record one line with
+`bash "${CLAUDE_PLUGIN_ROOT}/scripts/progress.sh" "<handle>" "PROGRESS" "<detail>"`:
+- each readiness area is checked: `deploy: <area> <ok|blocker>` (container, CI, runbook, release notes)
+Keep the detail under 80 characters. If the command fails or is refused, carry on: progress lines are optional.
+
 ## Report
 **Report limit: ≤ 10 lines.** The readiness verdict, blockers (❌), files changed, and what you could not run. No logs.

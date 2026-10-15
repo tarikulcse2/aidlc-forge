@@ -1,6 +1,6 @@
 {
   "name": "aidlc-forge",
-  "version": "3.3.2",
+  "version": "3.6.1",
   "description": "AI-DLC lifecycle for Claude Code: requirements, planning, implementation, testing, deploy, close - per change request, with gates. Step-by-step (/aidlc-forge:step) or automatic (/aidlc-forge:auto).",
   "author": { "name": "Platform Team" },
   "license": "MIT",

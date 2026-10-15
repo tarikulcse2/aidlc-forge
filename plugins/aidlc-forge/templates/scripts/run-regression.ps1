@@ -1,5 +1,5 @@
 <#
-  Managed by the aidlc-forge plugin (templates/scripts/run-regression.ps1, v3.3.2). Re-run /aidlc-forge:init to update.
+  Managed by the aidlc-forge plugin (templates/scripts/run-regression.ps1, v3.5.0). Re-run /aidlc-forge:init to update.
 
 .SYNOPSIS
   Regression without AI: ONE test command from .aidlc/config.yaml. By default that's `test_all`, which builds and

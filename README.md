@@ -7,7 +7,7 @@ Claude Code, plus the shared CI workflow that projects call.
 command, run modes, concepts, agents, testing, configuration, cost and speed, files, git, hooks and scripts, CI,
 safety, and troubleshooting.
 
-**What's inside the `aidlc-forge` plugin (v3.3.2):**
+**What's inside the `aidlc-forge` plugin (v3.6.1):**
 - **16 commands** (`/aidlc-forge:…`):
   - project setup: `init`, `discovery`
   - lifecycle: `requirements` → `planning` → `implementation` → `testing` → `deploy` → `close`
@@ -17,6 +17,7 @@ safety, and troubleshooting.
   - views: `status`, `portfolio`
 - **7 agents:** `requirements-analyst`, `planner`, `tester`, `coder`, `code-reviewer`, `devops`, `discovery-analyst`
 - **2 hooks:** format on edit, and a test gate before Claude finishes
+- **Project scripts** (copied by `/aidlc-forge:init`): `watch.ps1` (live progress view), `aidlc-auto.ps1` (unattended runs, with live output and a notification), `run-regression.ps1`, `statusline.sh` (live status line) and `agent-rows.ps1` (agent rows with progress, time and token count)
 
 ```
 .claude-plugin/marketplace.json           marketplace manifest

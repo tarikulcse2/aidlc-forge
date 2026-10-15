@@ -1,5 +1,94 @@
 # Changelog
 
+## 3.6.1 (2026-10-13)
+- **Agent rows show token counts:** each aidlc-forge agent's row (`agent-rows.ps1`) ends with its token count, as
+  Claude Code's default row does: `coder · CR-007-… U-13 … · green after 2 attempt(s) · 01:37 · 12.4k tokens`.
+  Numbers always use a dot (`12.4k`, `1.2M`), whatever the Windows language setting.
+- A row too long for the panel now shortens its label instead of cutting off the end, so the running time, token
+  count and status always stay visible.
+- Re-run `/aidlc-forge:init` in each project to copy the new `scripts/aidlc/agent-rows.ps1`.
+
+## 3.6.0 (2026-10-13)
+Faster small CRs. Based on TestApp-aidlc's progress log: writing the code took only 10–20% of a unit's time, and
+the rest was fixed per-unit overhead (agent start-up and re-reading ~50 s, review ~45–65 s, bookkeeping ~25 s).
+- **Fewer units:** the planner estimates the whole change. If it's ≤ `small_change_lines` (new config key, default
+  150) and ≤ 5 production files, it plans **one unit**, never split by layer. It splits only for independent or risky
+  parts (auth, security, migrations, the contract) or bigger changes. The `units.md` header records
+  `Estimate: ~<n> lines, <n> files`.
+- **One combined review:** a small CR that is still split gets `Review: combined`. Only its last unit triggers a
+  review, which covers the whole CR in one pass (`<handle> review: whole CR`). Others keep a review per unit, and
+  older `units.md` files default to per unit. The code-reviewer's turn limit is now 20 (was 15).
+- **Faster planning:** under `balanced`, small standard CRs (≤ 2 stories, no package, persistence, auth or
+  contract-versioning decision) are planned on **Sonnet**, not Opus. The planner skips the options table, and
+  `design.md`, when there's no real decision.
+- **Traceability once per CR:** `implementation` regenerates `docs/traceability.md` only after the last unit.
+- Expected effect: a CR-007-sized change (3 units) goes from ~15 to ~6–8 minutes.
+
+## 3.5.0 (2026-10-13)
+Live progress inside Claude Code itself, not only in a second terminal.
+- **Status line** (`templates/scripts/statusline.sh`, copied by `init`): one line at the bottom of Claude Code, e.g.
+  `aidlc ▶ CR-006-admin-login · implementation · U-12 Sign-out (2/3) · coder: green after 1 attempt · 00:16:40`.
+  - It refreshes every 3 s (`refreshInterval`), so it keeps updating while the session waits for an agent.
+  - It warns after 10 quiet minutes, shows `🏁 … GREEN in …` for 30 minutes after the run, and shows nothing
+    outside aidlc projects.
+  - It reads `.aidlc/progress.log` and `state.yaml`; no AI.
+- **Agent rows** (`templates/scripts/agent-rows.ps1`, Claude Code's `subagentStatusLine`): each running aidlc-forge
+  agent's row shows its role, label, the latest `PROGRESS` line it wrote itself for its unit, and running time, e.g.
+  `coder · CR-006-admin-login U-12 Sign-out · green after 1 attempt(s) · 02:14`. Other agents keep their default row.
+- **`init`** copies both scripts and, after asking, writes `statusLine` and `subagentStatusLine` into the personal
+  `.claude/settings.local.json`, with absolute paths. A plugin can't set a status line itself, and
+  `${CLAUDE_PLUGIN_ROOT}` isn't documented for these commands. It warns when this would replace your own status line.
+
+## 3.4.2 (2026-10-13)
+Completion time for every step, unit and run.
+- **`progress.sh` calculates durations:** `STEP DONE`, `UNIT DONE`/`UNIT STOP` and `RUN COMPLETE` get ` in HH:MM:SS`,
+  measured from the matching `STEP START` (same step), `UNIT START` (same U-NN) or `RUN START`. Only lines since the
+  last `RUN START` count, so an earlier run never matches. It prints the logged line, and the session uses that
+  duration (never its own estimate).
+- **Chat lines** carry the durations: `✔ planning: 3 units in 00:03:02`, `🏁 RUN COMPLETE: GREEN in 00:18:52`.
+- **`watch.ps1`** ends with the total (RUN START → RUN COMPLETE), the slowest step and the slowest unit.
+- **`auto-run-report.md`** gets a timing line: the total, each step's duration, and the slowest unit. `RUN COMPLETE`
+  is now logged before the report is written, so the report can use its duration.
+- **The `implementation` command** always logs `UNIT START` and `UNIT DONE`/`UNIT STOP` itself (also when run by
+  hand), and writes `duration=HH:MM:SS` into the metrics row.
+- **Unattended runner:** `Claude finished in …` (from Claude Code's `duration_ms`), `Total time : …` (the whole run,
+  including its own regression), `AUTO RUN: GREEN in …`, the duration in the notification title,
+  `RUNNER VERDICT … in …`, and `duration=` in the metrics run row.
+
+## 3.4.1 (2026-10-13)
+Finer progress while a run is going.
+- **Agents log progress:** during `auto` and `custom-workflow` runs, agents get a `PROGRESS: <handle> U-NN` tag and
+  write `PROGRESS` lines with `progress.sh`:
+  - the tester: tests red
+  - the coder: tests red, green after n attempts, each failed attempt
+  - the code-reviewer: its verdict
+  - devops: each readiness area
+  - discovery-analyst: each area documented
+
+  So a long unit no longer looks frozen in `watch.ps1`. The planner and analyst have no shell; the main session
+  brackets their steps.
+- **Chat progress lines:** after each event, the session prints one line (`▶ U-02 Outbox table (2/5)`, `✅ …`, `⛔ …`,
+  `🧪 GREEN 73/73`, `🏁 RUN COMPLETE: GREEN`), so the chat reads as a progress log between agent runs.
+- **Unattended runner:** shows agents' `PROGRESS` lines live, while still hiding their other internal steps.
+- `watch.ps1` shows the last 12 events (was 10). The code-reviewer's shell rule allows the progress line.
+
+## 3.4.0 (2026-10-13)
+Real-time progress for full runs.
+- **Progress log:** a new `scripts/progress.sh` appends timestamped events to `.aidlc/progress.log`. `auto` and
+  `custom-workflow` record `RUN START`, `STEP START`/`STEP DONE`, `UNIT START`/`UNIT DONE`/`UNIT STOP`, `TESTS`,
+  `HARD STOP` and `RUN COMPLETE`. Logging never fails a run.
+- **Live view `scripts/aidlc/watch.ps1`** (copied by `init`): refreshes every few seconds with the active CR (handle
+  and ticket), status, gates, units (⏳/🔨/✅/⛔), elapsed time and the latest events. It ends with
+  `RUN COMPLETE: GREEN / RED / HARD STOP` and a beep. Options: `-Seconds`, `-Once`, `-Notify`. No AI involved.
+- **Unattended runner (`aidlc-auto.ps1`):**
+  - live output via `stream-json`: agent starts with their labels, progress events in colour, edits and commands;
+    sub-agents' internal steps are hidden
+  - the full stream is saved as `claude-stream.jsonl` in the run folder
+  - after the independent regression it writes a `RUNNER VERDICT` event
+  - a **Windows notification** at the end (`-NoNotify` turns it off)
+- `init` adds `.aidlc/progress.log` to `.gitignore`. All PowerShell scripts are pure ASCII, so they read correctly
+  in Windows PowerShell 5.1.
+
 ## 3.3.2 (2026-10-13)
 - **Security:**
   - Commands' `allowed-tools` changed from `Bash(bash:*)` to `Bash(bash "${CLAUDE_PLUGIN_ROOT}/scripts/*)`. The old
